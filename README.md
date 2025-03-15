@@ -19,9 +19,9 @@ python seam_carving.py -in './path/to/input.jpg' -out './path/to/output' -wf 2 -
 ```
 python seam_carving.py -in './mountain/input.jpg' -out './mountain' -wf 2 -hf 1
 ```
-time: 6.43 seconds
+time: 5.94 seconds
 
 ```
 python seam_carving.py -in './castle/input.jpg' -out './castle' -wf 2 -hf 1
 ```
-time: 53.74 seconds
+time: 46.85 seconds
