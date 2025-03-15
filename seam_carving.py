@@ -40,22 +40,28 @@ def find_vertical_seam(energy):
     return seam
 
 def remove_vertical_seam(image, seam):
-    """Remove a vertical seam efficiently using NumPy."""
+    """Remove a vertical seam from the image."""
     h, w, _ = image.shape
-    mask = np.ones((h, w), dtype=bool)
-    mask[np.arange(h), seam] = False
-    return image[mask].reshape(h, w - 1, 3)
+    new_image = np.zeros((h, w - 1, 3), dtype=np.uint8)
+
+    for i in range(h):
+        new_image[i, :, :] = np.delete(image[i, :, :], seam[i], axis=0)
+
+    return new_image
 
 def find_horizontal_seam(energy):
     """Find the optimal horizontal seam."""
     return find_vertical_seam(energy.T)
 
 def remove_horizontal_seam(image, seam):
-    """Remove a horizontal seam efficiently using NumPy."""
+    """Remove a horizontal seam from the image."""
     h, w, _ = image.shape
-    mask = np.ones((h, w), dtype=bool)
-    mask[seam, np.arange(w)] = False
-    return image[mask].reshape(h - 1, w, 3)
+    new_image = np.zeros((h - 1, w, 3), dtype=np.uint8)
+
+    for j in range(w):
+        new_image[:, j, :] = np.delete(image[:, j, :], seam[j], axis=0)
+
+    return new_image
 
 def seam_carve(image, new_width, new_height):
     """Perform seam carving to resize the image."""
@@ -63,12 +69,14 @@ def seam_carve(image, new_width, new_height):
     seam_visual = image.copy()
     energy_map = compute_energy(image)
 
+    # Remove vertical seams
     for _ in range(image.shape[1] - new_width):
         energy = compute_energy(image)
         seam = find_vertical_seam(energy)
         seam_visual[np.arange(image.shape[0]), seam] = [0, 0, 255]
         image = remove_vertical_seam(image, seam)
 
+    # Remove horizontal seams
     for _ in range(image.shape[0] - new_height):
         energy = compute_energy(image)
         seam = find_horizontal_seam(energy)
