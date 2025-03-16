@@ -30,7 +30,7 @@ def find_vertical_seam(energy):
 
         min_idx = np.argmin([left, up, right], axis=0) - 1
         cost[i] += np.minimum.reduce([left, up, right])
-        backtrack[i] = np.clip(np.arange(w) + min_idx, 0, w - 1)
+        backtrack[i] = np.arange(w) + min_idx
 
     seam = np.zeros(h, dtype=np.int32)
     seam[-1] = np.argmin(cost[-1])
@@ -63,11 +63,10 @@ def remove_horizontal_seam(image, seam):
 
     return new_image
 
-def seam_carve(image, new_width, new_height):
+def seam_carve_vertical(image, new_width):
     """Perform seam carving to resize the image."""
     image = image.copy()
     seam_visual = image.copy()
-    energy_map = compute_energy(image)
 
     # Remove vertical seams
     for _ in range(image.shape[1] - new_width):
@@ -76,6 +75,13 @@ def seam_carve(image, new_width, new_height):
         seam_visual[np.arange(image.shape[0]), seam] = [0, 0, 255]
         image = remove_vertical_seam(image, seam)
 
+    return image, seam_visual
+
+def seam_carve_horizontal(image, new_height):
+    """Perform seam carving to resize the image."""
+    image = image.copy()
+    seam_visual = image.copy()
+
     # Remove horizontal seams
     for _ in range(image.shape[0] - new_height):
         energy = compute_energy(image)
@@ -83,7 +89,7 @@ def seam_carve(image, new_width, new_height):
         seam_visual[seam, np.arange(image.shape[1])] = [0, 255, 0]
         image = remove_horizontal_seam(image, seam)
 
-    return image, seam_visual, energy_map
+    return image, seam_visual
 
 def main():
     # Set up argument parsing
@@ -109,7 +115,9 @@ def main():
 
     # Perform seam carving
     t0 = time.time()
-    resized_image, seam_visual, energy_map = seam_carve(image, new_width, new_height)
+    energy_map = compute_energy(image)
+    resized_image_vertical, seam_visual_vertical = seam_carve_vertical(image, new_width)
+    resized_image, seam_visual_horizontal = seam_carve_horizontal(resized_image_vertical, new_height)
     tf = time.time()
     print(f"time: {tf - t0:.2f} seconds")
     
@@ -121,32 +129,42 @@ def main():
 
     # Define output file paths
     resized_image_path = os.path.join(args.output_dir, 'resized.jpg')
-    seams_visual_path = os.path.join(args.output_dir, 'seams_on_original.jpg')
+    seams_visual_vertical_path = os.path.join(args.output_dir, 'seams_on_original.jpg')
+    seams_visual_horizontal_path = os.path.join(args.output_dir, 'seams_on_vertical.jpg')
     energy_map_path = os.path.join(args.output_dir, 'energy_map.jpg')
 
     # Save results
     cv2.imwrite(resized_image_path, resized_image)
-    cv2.imwrite(seams_visual_path, seam_visual)
+    cv2.imwrite(seams_visual_vertical_path, seam_visual_vertical)
+    cv2.imwrite(seams_visual_horizontal_path, seam_visual_horizontal)
     cv2.imwrite(energy_map_path, energy_map)
 
     # Display results
-    plt.figure(figsize=(10, 7))
+    plt.figure(figsize=(15, 7))
 
-    plt.subplot(2, 2, 1)
+    plt.subplot(2, 3, 1)
     plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     plt.title("Original Image")
 
-    plt.subplot(2, 2, 2)
-    plt.imshow(cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB))
-    plt.title("Resized Image")
+    plt.subplot(2, 3, 2)
+    plt.imshow(cv2.cvtColor(seam_visual_vertical, cv2.COLOR_BGR2RGB))
+    plt.title("Seams Visualization - Vertical")
 
-    plt.subplot(2, 2, 3)
+    plt.subplot(2, 3, 3)
+    plt.imshow(cv2.cvtColor(resized_image_vertical, cv2.COLOR_BGR2RGB))
+    plt.title("Resized Image - Vertical")
+
+    plt.subplot(2, 3, 4)
     plt.imshow(energy_map, cmap='gray')
     plt.title("Energy Map")
 
-    plt.subplot(2, 2, 4)
-    plt.imshow(cv2.cvtColor(seam_visual, cv2.COLOR_BGR2RGB))
-    plt.title("Seams Visualization")
+    plt.subplot(2, 3, 5)
+    plt.imshow(cv2.cvtColor(seam_visual_horizontal, cv2.COLOR_BGR2RGB))
+    plt.title("Seams Visualization - Horizontal")
+
+    plt.subplot(2, 3, 6)
+    plt.imshow(cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB))
+    plt.title("Resized Image")
 
     plt.show()
 
